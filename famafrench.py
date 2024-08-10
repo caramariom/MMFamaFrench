@@ -14,6 +14,7 @@ import os
 import seaborn as sns
 import matplotlib.ticker as mtick
 from sklearn.linear_model import LinearRegression
+import sys
 
 lookup_ma = {'1D': 1, '1M': 20, '1Y': 250, '3Y': 250 * 3, '5Y': 250 * 5, '10Y': 250 * 10}
 lookup_factors = {'Market Factor (MER)': 'MER',
@@ -26,8 +27,18 @@ maxFigWidth = 22
 
 def load_dataframes(file: str) -> Dict[str, pd.DataFrame]:
     from collections import defaultdict
+    try:
+        import io
+        print("Module 'io' is installed.")
+    except ModuleNotFoundError:
+        print("Module 'io' is not installed.")
     from io import StringIO
-    with open(file) as reader:
+    try:
+        with open(file,'r', encoding='utf-8') as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        print("Error decoding file content.")
+    with open(file,'r', encoding='utf-8') as reader:
         name = None
         data = defaultdict(list)
         for line in reader.readlines():
@@ -50,6 +61,17 @@ def load_all_portfolios():
     portfolios = dict()
     i = 1
     for file in os.listdir('data-portfolios'):
+        filepath = os.path.join('data-portfolios', file)
+        print(os.getcwd())
+        print(file)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                try:
+                    content = f.read()
+                except FileNotFoundError:
+                    print("File not found")
+        except UnicodeDecodeError:
+            print("Error decoding file content.")
         fileport = load_dataframes(os.path.join('data-portfolios', file))
         for k2, v2 in fileport.items():
             for k3, v3 in v2.items():
@@ -57,6 +79,12 @@ def load_all_portfolios():
                     portfolios['%i. ' % i + ' ➤ '.join([file[:-4], k2, k3])] = v3
                     i += 1
     for file in os.listdir('data-stocks'):
+        filepath = os.path.join('data-stocks', file)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            print("Error decoding file content.")
         x = pd.read_csv(os.path.join('data-stocks', file), index_col=0, parse_dates=[0], low_memory=False)['Close']
         x = (x - x.shift(1)) / x.shift(1)
         portfolios['%i. ' % i + file[:-4]] = x
